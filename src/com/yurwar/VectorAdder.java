@@ -4,13 +4,17 @@ import com.yurwar.utils.ArrayGenerator;
 import mpi.*;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 public class VectorAdder {
-    private static final int VECTOR_SIZE = 50;
+    private static final int VECTOR_SIZE = 500;
     private static final int ROOT_RANK = 0;
     private static final String ARRAY_PRINTING_FORMAT = "%s: %s%n";
     private final ArrayGenerator generator = new ArrayGenerator();
+    private final ForkJoinPool pool = ForkJoinPool.commonPool();
 
     public void execute(String... args) {
         MPI.Init(args);
@@ -48,8 +52,11 @@ public class VectorAdder {
     }
 
     private int[] sumVectors(int[] v1, int[] v2) {
-        return IntStream.range(0, v1.length)
-                .map(index -> v1[index] + v2[index])
+        VectorAddingTask addingTask = new VectorAddingTask(v1, v2);
+        List<Integer> result = pool.invoke(addingTask);
+
+        return result.stream()
+                .mapToInt(i -> i)
                 .toArray();
     }
 
